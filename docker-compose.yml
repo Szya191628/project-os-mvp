@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: project-os-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: project_os
+      POSTGRES_USER: project_os
+      POSTGRES_PASSWORD: project_os_dev
+    ports:
+      - "54329:5432"
+    volumes:
+      - project_os_pgdata:/var/lib/postgresql/data
+
+volumes:
+  project_os_pgdata:

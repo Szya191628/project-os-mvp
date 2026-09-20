@@ -1,0 +1,1106 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum OrganizationStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum MemberStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum ProjectStatus {
+  IN_PROGRESS
+  AT_RISK
+  PLANNED
+  PAUSED
+}
+
+enum ProjectHealth {
+  HEALTHY
+  ATTENTION
+  WARNING
+}
+
+enum WorkflowVersionStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum WorkflowNodeType {
+  START
+  TASK
+  MILESTONE
+  END
+}
+
+enum DependencyType {
+  FS
+}
+
+enum TaskExecutionStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  BLOCKED
+  COMPLETED
+  DUE_UNFINISHED
+  EARLY_FINISHED
+  ON_TIME_FINISHED
+  OVERDUE_FINISHED
+}
+
+enum CalendarMode {
+  NATURAL
+  WORKING
+}
+
+enum CalendarExceptionKind {
+  HOLIDAY
+  REST
+  MAKEUP_WORKDAY
+}
+
+enum DeliverableKind {
+  FILE
+  LINK
+  DINGTALK
+}
+
+enum TimeEntryStatus {
+  DRAFT
+  PENDING_APPROVAL
+  CONFIRMED
+}
+
+enum NotificationEventType {
+  TASK_PUBLISHED
+  TASK_READY
+  TASK_DUE_SOON
+  TASK_OVERDUE
+  TASK_ASSIGNEE_CHANGED
+  TASK_SCHEDULE_CHANGED
+  TASK_APPROVAL_SUBMITTED
+  TASK_APPROVAL_VIEWED
+  TASK_DELIVERABLE_SUBMITTED
+}
+
+enum ApprovalStepStage {
+  L2
+  ADMIN
+}
+
+enum ApprovalStepMode {
+  ANY
+  ALL
+}
+
+enum NotificationChannel {
+  IN_APP
+  DINGTALK
+}
+
+enum DeliveryStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+enum OutboxStatus {
+  PENDING
+  PROCESSING
+  PROCESSED
+  FAILED
+}
+
+enum ScopeType {
+  ORGANIZATION
+  DEPARTMENT
+  PROJECT
+  SELF
+}
+
+enum IntegrationProvider {
+  DINGTALK
+}
+
+enum IntegrationStatus {
+  ENABLED
+  DISABLED
+}
+
+enum ExternalIdentityProvider {
+  DINGTALK
+  WECHAT
+}
+
+model Organization {
+  id                         String                 @id @default(uuid()) @db.Uuid
+  code                       String                 @unique
+  name                       String
+  status                     OrganizationStatus     @default(ACTIVE)
+  // 关闭后仅保留钉钉 OAuth 登录，Project OS 不再进行任何钉钉业务交互。
+  dingtalkIntegrationEnabled Boolean                @default(true)
+  createdAt                  DateTime               @default(now())
+  updatedAt                  DateTime               @updatedAt
+  departments                Department[]
+  members                    Member[]
+  projects                   Project[]
+  projectMembers             ProjectMember[]
+  workCalendars              WorkCalendar[]
+  notifications              Notification[]
+  outboxEvents               OutboxEvent[]
+  auditLogs                  AuditLog[]
+  dingtalkApiUsages          DingTalkApiUsage[]
+  integrations               Integration[]
+  roles                      Role[]
+  projectPortfolios          ProjectPortfolio[]
+  workflowTemplates          WorkflowTemplate[]
+  agentConversations         AgentConversation[]
+  agentMemories              AgentMemory[]
+  notificationTemplates      NotificationTemplate[]
+  claimTasks                 ClaimTask[]
+}
+
+model Department {
+  id                String             @id @default(uuid()) @db.Uuid
+  organizationId    String             @db.Uuid
+  parentId          String?            @db.Uuid
+  name              String
+  externalKey       String?
+  status            MemberStatus       @default(ACTIVE)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  organization      Organization       @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  parent            Department?        @relation("DepartmentTree", fields: [parentId], references: [id], onDelete: Restrict)
+  children          Department[]       @relation("DepartmentTree")
+  members           Member[]
+  memberDepartments MemberDepartment[]
+  projects          Project[]          @relation("DepartmentProjects")
+  roleScopes        RoleScope[]
+
+  @@unique([organizationId, parentId, name])
+  @@index([organizationId, status])
+}
+
+model Member {
+  id                           String                  @id @default(uuid()) @db.Uuid
+  organizationId               String                  @db.Uuid
+  departmentId                 String?                 @db.Uuid
+  managerId                    String?                 @db.Uuid
+  name                         String
+  email                        String?
+  avatarUrl                    String?
+  roleTitle                    String?
+  capacityHoursPerWeek         Int                     @default(40)
+  status                       MemberStatus            @default(ACTIVE)
+  joinedAt                     DateTime?
+  leftAt                       DateTime?
+  createdAt                    DateTime                @default(now())
+  updatedAt                    DateTime                @updatedAt
+  organization                 Organization            @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  department                   Department?             @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  memberDepartments            MemberDepartment[]
+  manager                      Member?                 @relation("MemberManager", fields: [managerId], references: [id], onDelete: Restrict)
+  reports                      Member[]                @relation("MemberManager")
+  ownedProjects                Project[]               @relation("ProjectOwner")
+  createdProjects              Project[]               @relation("ProjectCreatedBy")
+  ownedPortfolios              ProjectPortfolio[]      @relation("PortfolioOwner")
+  projectMemberships           ProjectMember[]
+  ownedNodes                   WorkflowNode[]          @relation("NodeOwner")
+  createdVersions              WorkflowVersion[]       @relation("VersionCreatedBy")
+  publishedVersions            WorkflowVersion[]       @relation("VersionPublishedBy")
+  updatedExecutions            TaskExecution[]         @relation("ExecutionUpdatedBy")
+  statusChanges                TaskStatusHistory[]     @relation("StatusChangedBy")
+  uploadedDeliverables         TaskDeliverable[]       @relation("DeliverableUploader")
+  sessions                     Session[]
+  externalIdentities           ExternalIdentity[]
+  wechatBindingCodes           WechatBindingCode[]
+  notificationRecipients       NotificationRecipient[]
+  notificationDeliveries       NotificationDelivery[]
+  timeEntries                  TimeEntry[]
+  memberRoles                  MemberRole[]            @relation("MemberRoles")
+  assignedRoles                MemberRole[]            @relation("RoleAssignedBy")
+  auditLogs                    AuditLog[]              @relation("AuditActor")
+  assignedClosureChecks        TaskClosureCheck[]      @relation("ClosureCheckCompletedBy")
+  taskAssignments              TaskAssignee[]          @relation("TaskAssigneeMember")
+  assignedTaskAssignees        TaskAssignee[]          @relation("TaskAssigneeActor")
+  projectRoleGrants            ProjectRoleGrant[]      @relation("ProjectRoleGrantMember")
+  grantedProjectRoles          ProjectRoleGrant[]      @relation("ProjectRoleGrantActor")
+  agentConversations           AgentConversation[]
+  agentMemories                AgentMemory[]
+  updatedNotificationTemplates NotificationTemplate[]  @relation("NotificationTemplateUpdatedBy")
+  publishedClaimTasks          ClaimTask[]             @relation("ClaimTaskPublisher")
+  claimedClaimTasks            ClaimTask[]             @relation("ClaimTaskClaimedBy")
+
+  @@index([organizationId, status])
+  @@index([organizationId, departmentId, status])
+}
+
+model MemberDepartment {
+  memberId     String     @db.Uuid
+  departmentId String     @db.Uuid
+  createdAt    DateTime   @default(now())
+  member       Member     @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+
+  @@id([memberId, departmentId])
+  @@index([departmentId])
+}
+
+model Project {
+  id                String             @id @default(uuid()) @db.Uuid
+  organizationId    String             @db.Uuid
+  code              String
+  name              String
+  departmentId      String?            @db.Uuid
+  portfolioId       String?            @db.Uuid
+  ownerMemberId     String?            @db.Uuid
+  status            ProjectStatus      @default(PLANNED)
+  health            ProjectHealth      @default(HEALTHY)
+  plannedStart      DateTime           @db.Date
+  plannedEnd        DateTime?          @db.Date
+  budgetAmount      Decimal?           @db.Decimal(14, 2)
+  actualCostAmount  Decimal?           @db.Decimal(14, 2)
+  createdById       String?            @db.Uuid
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  archivedAt        DateTime?
+  organization      Organization       @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  department        Department?        @relation("DepartmentProjects", fields: [departmentId], references: [id], onDelete: Restrict)
+  portfolio         ProjectPortfolio?  @relation(fields: [portfolioId], references: [id], onDelete: SetNull)
+  owner             Member?            @relation("ProjectOwner", fields: [ownerMemberId], references: [id], onDelete: Restrict)
+  createdBy         Member?            @relation("ProjectCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  approvalAutoStart Boolean            @default(true)
+  members           ProjectMember[]
+  workflow          Workflow?
+  tasks             Task[]
+  timeEntries       TimeEntry[]
+  notifications     Notification[]
+  auditLogs         AuditLog[]
+  workCalendar      WorkCalendar?
+  roleScopes        RoleScope[]
+  projectRoleGrants ProjectRoleGrant[] @relation("ProjectRoleGrants")
+  approvalPolicy    ApprovalPolicy?
+
+  @@unique([organizationId, code])
+  @@index([organizationId, status, updatedAt])
+  @@index([portfolioId, archivedAt])
+}
+
+model ProjectPortfolio {
+  id               String       @id @default(uuid()) @db.Uuid
+  organizationId   String       @db.Uuid
+  code             String
+  name             String
+  description      String?
+  workflowSnapshot Json?
+  ownerMemberId    String?      @db.Uuid
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  archivedAt       DateTime?
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  owner            Member?      @relation("PortfolioOwner", fields: [ownerMemberId], references: [id], onDelete: Restrict)
+  projects         Project[]
+
+  @@unique([organizationId, code])
+  @@index([organizationId, archivedAt, updatedAt])
+}
+
+model WorkflowTemplate {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @db.Uuid
+  name           String
+  description    String?
+  snapshot       Json
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@unique([organizationId, name])
+  @@index([organizationId, updatedAt])
+}
+
+model ProjectMember {
+  projectId      String       @db.Uuid
+  memberId       String       @db.Uuid
+  membershipRole String       @default("member")
+  createdAt      DateTime     @default(now())
+  project        Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  member         Member       @relation(fields: [memberId], references: [id], onDelete: Restrict)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  organizationId String       @db.Uuid
+
+  @@id([projectId, memberId])
+  @@index([memberId, projectId])
+}
+
+model Workflow {
+  id                 String            @id @default(uuid()) @db.Uuid
+  projectId          String            @unique @db.Uuid
+  draftVersionId     String?           @unique @db.Uuid
+  publishedVersionId String?           @unique @db.Uuid
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  project            Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  versions           WorkflowVersion[] @relation("WorkflowVersions")
+  draftVersion       WorkflowVersion?  @relation("WorkflowDraftVersion", fields: [draftVersionId], references: [id], onDelete: Restrict)
+  publishedVersion   WorkflowVersion?  @relation("WorkflowPublishedVersion", fields: [publishedVersionId], references: [id], onDelete: Restrict)
+}
+
+model WorkflowVersion {
+  id            String                 @id @default(uuid()) @db.Uuid
+  workflowId    String                 @db.Uuid
+  versionNo     Int
+  status        WorkflowVersionStatus  @default(DRAFT)
+  baselineStart DateTime               @db.Date
+  calendarId    String?                @db.Uuid
+  createdById   String?                @db.Uuid
+  publishedById String?                @db.Uuid
+  publishedAt   DateTime?
+  changeSummary String?
+  createdAt     DateTime               @default(now())
+  workflow      Workflow               @relation("WorkflowVersions", fields: [workflowId], references: [id], onDelete: Cascade)
+  draftOf       Workflow[]             @relation("WorkflowDraftVersion")
+  publishedOf   Workflow[]             @relation("WorkflowPublishedVersion")
+  calendar      WorkCalendar?          @relation(fields: [calendarId], references: [id], onDelete: Restrict)
+  createdBy     Member?                @relation("VersionCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  publishedBy   Member?                @relation("VersionPublishedBy", fields: [publishedById], references: [id], onDelete: Restrict)
+  nodes         WorkflowNode[]
+  edges         WorkflowEdge[]
+  schedules     WorkflowNodeSchedule[]
+  createdTasks  Task[]                 @relation("TaskCreatedInVersion")
+
+  @@unique([workflowId, versionNo])
+  @@index([workflowId, status, createdAt])
+}
+
+model WorkflowNode {
+  id                   String                 @id @default(uuid()) @db.Uuid
+  workflowVersionId    String                 @db.Uuid
+  taskId               String?                @db.Uuid
+  nodeType             WorkflowNodeType
+  wbs                  String
+  parentTaskId         String?                @db.Uuid
+  name                 String
+  ownerMemberId        String?                @db.Uuid
+  durationDays         Int                    @default(0)
+  effortHours          Int                    @default(0)
+  description          String?
+  closureCriteria      String?
+  plannedStartOverride DateTime?              @db.Date
+  plannedEndOverride   DateTime?              @db.Date
+  positionX            Float                  @default(0)
+  positionY            Float                  @default(0)
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+  workflowVersion      WorkflowVersion        @relation(fields: [workflowVersionId], references: [id], onDelete: Cascade)
+  task                 Task?                  @relation(fields: [taskId], references: [id], onDelete: Restrict)
+  parentTask           Task?                  @relation("ParentTaskNodes", fields: [parentTaskId], references: [id], onDelete: Restrict)
+  ownerMember          Member?                @relation("NodeOwner", fields: [ownerMemberId], references: [id], onDelete: Restrict)
+  sourceEdges          WorkflowEdge[]         @relation("EdgeSource")
+  targetEdges          WorkflowEdge[]         @relation("EdgeTarget")
+  schedules            WorkflowNodeSchedule[]
+
+  @@unique([workflowVersionId, taskId])
+  @@index([workflowVersionId, wbs])
+}
+
+model WorkflowEdge {
+  id                String          @id @default(uuid()) @db.Uuid
+  workflowVersionId String          @db.Uuid
+  sourceNodeId      String          @db.Uuid
+  targetNodeId      String          @db.Uuid
+  dependencyType    DependencyType  @default(FS)
+  lagDays           Int             @default(0)
+  createdAt         DateTime        @default(now())
+  workflowVersion   WorkflowVersion @relation(fields: [workflowVersionId], references: [id], onDelete: Cascade)
+  sourceNode        WorkflowNode    @relation("EdgeSource", fields: [sourceNodeId], references: [id], onDelete: Cascade)
+  targetNode        WorkflowNode    @relation("EdgeTarget", fields: [targetNodeId], references: [id], onDelete: Cascade)
+
+  @@unique([workflowVersionId, sourceNodeId, targetNodeId, dependencyType, lagDays])
+  @@index([workflowVersionId, targetNodeId])
+  @@index([workflowVersionId, sourceNodeId])
+}
+
+model WorkflowNodeSchedule {
+  workflowVersionId String          @db.Uuid
+  nodeId            String          @db.Uuid
+  plannedStart      DateTime        @db.Date
+  plannedEnd        DateTime        @db.Date
+  startOffset       Int
+  endOffset         Int
+  calendarSpan      Int
+  computedAt        DateTime        @default(now())
+  workflowVersion   WorkflowVersion @relation(fields: [workflowVersionId], references: [id], onDelete: Cascade)
+  node              WorkflowNode    @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+
+  @@id([workflowVersionId, nodeId])
+  @@index([plannedEnd])
+}
+
+model WorkCalendar {
+  id               String                  @id @default(uuid()) @db.Uuid
+  organizationId   String                  @db.Uuid
+  projectId        String?                 @unique @db.Uuid
+  name             String
+  mode             CalendarMode            @default(NATURAL)
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+  organization     Organization            @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  project          Project?                @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  weekdays         WorkCalendarWeekday[]
+  exceptions       WorkCalendarException[]
+  workflowVersions WorkflowVersion[]
+}
+
+model WorkCalendarWeekday {
+  calendarId String       @db.Uuid
+  weekday    Int
+  calendar   WorkCalendar @relation(fields: [calendarId], references: [id], onDelete: Cascade)
+
+  @@id([calendarId, weekday])
+}
+
+model WorkCalendarException {
+  id         String                @id @default(uuid()) @db.Uuid
+  calendarId String                @db.Uuid
+  date       DateTime              @db.Date
+  kind       CalendarExceptionKind
+  label      String?
+  calendar   WorkCalendar          @relation(fields: [calendarId], references: [id], onDelete: Cascade)
+
+  @@unique([calendarId, date])
+  @@index([date, kind])
+}
+
+model Task {
+  id                 String              @id @default(uuid()) @db.Uuid
+  projectId          String              @db.Uuid
+  createdInVersionId String?             @db.Uuid
+  taskType           WorkflowNodeType    @default(TASK)
+  createdAt          DateTime            @default(now())
+  archivedAt         DateTime?
+  project            Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdInVersion   WorkflowVersion?    @relation("TaskCreatedInVersion", fields: [createdInVersionId], references: [id], onDelete: Restrict)
+  nodes              WorkflowNode[]
+  parentNodes        WorkflowNode[]      @relation("ParentTaskNodes")
+  execution          TaskExecution?
+  statusHistory      TaskStatusHistory[]
+  closureChecks      TaskClosureCheck[]
+  deliverables       TaskDeliverable[]
+  timeEntries        TimeEntry[]
+  notifications      Notification[]
+  assignees          TaskAssignee[]
+  approvals          TaskApproval[]
+
+  @@index([projectId, archivedAt])
+}
+
+model TaskAssignee {
+  id           String    @id @default(uuid()) @db.Uuid
+  taskId       String    @db.Uuid
+  memberId     String    @db.Uuid
+  assignedById String?   @db.Uuid
+  assignedAt   DateTime  @default(now())
+  removedAt    DateTime?
+  task         Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  member       Member    @relation("TaskAssigneeMember", fields: [memberId], references: [id], onDelete: Restrict)
+  assignedBy   Member?   @relation("TaskAssigneeActor", fields: [assignedById], references: [id], onDelete: Restrict)
+
+  @@index([taskId, removedAt])
+  @@index([memberId, removedAt])
+}
+
+model ClaimTask {
+  id                String              @id @default(uuid()) @db.Uuid
+  organizationId    String              @db.Uuid
+  publisherMemberId String              @db.Uuid
+  name              String
+  departmentIds     String[]            @default([]) @db.Uuid
+  description       String?
+  closureCriteria   String?
+  durationDays      Int                 @default(1)
+  effortHours       Int                 @default(8)
+  status            TaskExecutionStatus @default(NOT_STARTED)
+  progress          Int                 @default(0)
+  claimedByMemberId String?             @db.Uuid
+  claimedAt         DateTime?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  archivedAt        DateTime?
+  organization      Organization        @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  publisher         Member              @relation("ClaimTaskPublisher", fields: [publisherMemberId], references: [id], onDelete: Restrict)
+  claimedBy         Member?             @relation("ClaimTaskClaimedBy", fields: [claimedByMemberId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, archivedAt, claimedByMemberId, createdAt])
+  @@index([claimedByMemberId, archivedAt])
+}
+
+model TaskExecution {
+  taskId                   String              @id @db.Uuid
+  status                   TaskExecutionStatus @default(NOT_STARTED)
+  progress                 Int                 @default(0)
+  actualStart              DateTime?           @db.Date
+  actualEnd                DateTime?           @db.Date
+  readyAt                  DateTime?           @db.Date
+  completionNote           String?
+  overdueReason            String?
+  // 已批准的特殊放行快照；保留本次跨节点推进的版本、前置任务和原因。
+  specialRelease           Json?
+  completionApprovalStatus String              @default("PENDING")
+  completionConfirmedAt    DateTime?           @db.Date
+  updatedById              String?             @db.Uuid
+  updatedAt                DateTime            @updatedAt
+  task                     Task                @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  updatedBy                Member?             @relation("ExecutionUpdatedBy", fields: [updatedById], references: [id], onDelete: Restrict)
+
+  @@index([status, actualEnd])
+}
+
+model TaskStatusHistory {
+  id          String               @id @default(uuid()) @db.Uuid
+  taskId      String               @db.Uuid
+  fromStatus  TaskExecutionStatus?
+  toStatus    TaskExecutionStatus
+  actualStart DateTime?            @db.Date
+  actualEnd   DateTime?            @db.Date
+  reason      String?
+  changedById String?              @db.Uuid
+  createdAt   DateTime             @default(now())
+  task        Task                 @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  changedBy   Member?              @relation("StatusChangedBy", fields: [changedById], references: [id], onDelete: Restrict)
+
+  @@index([taskId, createdAt])
+}
+
+model TaskClosureCheck {
+  id            String    @id @default(uuid()) @db.Uuid
+  taskId        String    @db.Uuid
+  label         String
+  completed     Boolean   @default(false)
+  completedById String?   @db.Uuid
+  completedAt   DateTime?
+  sortOrder     Int       @default(0)
+  task          Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  completedBy   Member?   @relation("ClosureCheckCompletedBy", fields: [completedById], references: [id], onDelete: Restrict)
+
+  @@index([taskId, sortOrder])
+}
+
+model TaskDeliverable {
+  id                        String                    @id @default(uuid()) @db.Uuid
+  taskId                    String                    @db.Uuid
+  kind                      DeliverableKind
+  name                      String
+  versionLabel              String
+  url                       String?
+  objectKey                 String?
+  mimeType                  String?
+  sizeBytes                 BigInt?
+  uploaderMemberId          String?                   @db.Uuid
+  externalProvider          String?
+  externalId                String?
+  approvalProcessInstanceId String?
+  approvalProcessCode       String?
+  approvalFileId            String?
+  approvalSpaceId           String?
+  createdAt                 DateTime                  @default(now())
+  deletedAt                 DateTime?
+  task                      Task                      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  uploader                  Member?                   @relation("DeliverableUploader", fields: [uploaderMemberId], references: [id], onDelete: Restrict)
+  approvalLinks             TaskApprovalDeliverable[]
+
+  @@index([taskId, createdAt])
+  @@index([externalProvider, externalId])
+  @@index([approvalProcessInstanceId, approvalFileId])
+}
+
+// 钉钉 OA 审批实例：任务交付物走钉钉审批流，审批通过后由回调/轮询驱动任务自动完成。
+// status: PENDING(审批中) / APPROVED(同意) / REJECTED(拒绝) / TERMINATED(终止)。
+// autoCompleteStatus: 审批通过后的处理结果 —— COMPLETED(已自动完成) / STAGE_RECORDED(阶段成果) /
+// SPECIAL_RELEASED(特殊放行已启动) / FAILED(校验未过，未完成)。
+model TaskApproval {
+  id                  String                    @id @default(uuid()) @db.Uuid
+  taskId              String                    @db.Uuid
+  processInstanceId   String                    @unique
+  processCode         String
+  // DINGTALK：外部钉钉 OA 实例；PROJECT_OS：Project OS 内部 OA 审批。
+  source              String                    @default("DINGTALK")
+  policyId            String?                   @db.Uuid
+  policySnapshot      Json?
+  currentStepNo       Int                       @default(1)
+  // DELIVERY=交付审批，BYPASS=特殊放行/跨节点推进审批。
+  purpose             String                    @default("DELIVERY")
+  // STAGE 只记录阶段成果；FINAL 通过后才允许完成任务。
+  deliveryType        String                    @default("FINAL")
+  status              String                    @default("PENDING")
+  autoCompleteStatus  String?
+  submitterMemberId   String?                   @db.Uuid
+  submitterName       String?
+  submitterDingUserId String?
+  formValues          Json?
+  approvalFileId      String?
+  approvalSpaceId     String?
+  approvalFileName    String?
+  approvalMimeType    String?
+  approvalSizeBytes   BigInt?
+  error               String?
+  completedAt         DateTime?
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @updatedAt
+  task                Task                      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  policy              ApprovalPolicy?           @relation(fields: [policyId], references: [id], onDelete: SetNull)
+  steps               TaskApprovalStep[]
+  // 审批包：一次完成审批关联的交付物集合（D1/D2/D3 多次提交，最终审批打包全部有效交付物）
+  packageLinks        TaskApprovalDeliverable[]
+
+  @@index([taskId, createdAt])
+  @@index([taskId, purpose, status])
+  @@index([source, status, updatedAt])
+  @@index([status, updatedAt])
+}
+
+// 项目级审批策略：步骤顺序在发起审批时快照到 TaskApproval，避免审批中修改策略影响当前任务。
+model ApprovalPolicy {
+  id        String               @id @default(uuid()) @db.Uuid
+  projectId String               @unique @db.Uuid
+  version   Int                  @default(1)
+  enabled   Boolean              @default(true)
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+  project   Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  steps     ApprovalPolicyStep[]
+  approvals TaskApproval[]
+}
+
+model ApprovalPolicyStep {
+  id           String            @id @default(uuid()) @db.Uuid
+  policyId     String            @db.Uuid
+  stepNo       Int
+  stage        ApprovalStepStage
+  mode         ApprovalStepMode  @default(ANY)
+  minApprovals Int               @default(1)
+  approverMemberIds Json         @default("[]")
+  ccMemberIds       Json         @default("[]")
+  createdAt    DateTime          @default(now())
+  policy       ApprovalPolicy    @relation(fields: [policyId], references: [id], onDelete: Cascade)
+
+  @@unique([policyId, stepNo])
+  @@index([policyId, stepNo])
+}
+
+// 一次 TaskApproval 的外部钉钉实例步骤；每次只激活一个步骤，审批通过后再创建下一实例。
+model TaskApprovalStep {
+  id                String            @id @default(uuid()) @db.Uuid
+  approvalId        String            @db.Uuid
+  stepNo            Int
+  stage             ApprovalStepStage
+  mode              ApprovalStepMode  @default(ANY)
+  minApprovals      Int               @default(1)
+  processInstanceId String            @unique
+  approverUserIds   Json
+  status            String            @default("PENDING")
+  error             String?
+  decidedAt         DateTime?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  approval          TaskApproval      @relation(fields: [approvalId], references: [id], onDelete: Cascade)
+
+  @@unique([approvalId, stepNo])
+  @@index([approvalId, stepNo])
+  @@index([status, updatedAt])
+}
+
+// 审批包关联：TaskApproval ↔ TaskDeliverable（一次审批可包含多个交付物，
+// 补交后同一交付物也可能进入多次审批包）。
+model TaskApprovalDeliverable {
+  id            String          @id @default(uuid()) @db.Uuid
+  approvalId    String          @db.Uuid
+  deliverableId String          @db.Uuid
+  createdAt     DateTime        @default(now())
+  approval      TaskApproval    @relation(fields: [approvalId], references: [id], onDelete: Cascade)
+  deliverable   TaskDeliverable @relation(fields: [deliverableId], references: [id], onDelete: Cascade)
+
+  @@unique([approvalId, deliverableId])
+  @@index([deliverableId])
+}
+
+model TimeEntry {
+  id        String          @id @default(uuid()) @db.Uuid
+  memberId  String          @db.Uuid
+  projectId String          @db.Uuid
+  taskId    String?         @db.Uuid
+  workDate  DateTime        @db.Date
+  hours     Decimal         @db.Decimal(6, 2)
+  status    TimeEntryStatus @default(DRAFT)
+  note      String?
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  member    Member          @relation(fields: [memberId], references: [id], onDelete: Restrict)
+  project   Project         @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  task      Task?           @relation(fields: [taskId], references: [id], onDelete: Restrict)
+
+  @@index([memberId, workDate])
+  @@index([projectId, workDate])
+}
+
+model Notification {
+  id             String                  @id @default(uuid()) @db.Uuid
+  organizationId String                  @db.Uuid
+  projectId      String?                 @db.Uuid
+  taskId         String?                 @db.Uuid
+  eventType      NotificationEventType
+  eventKey       String
+  title          String
+  body           String
+  dueDate        DateTime?               @db.Date
+  createdAt      DateTime                @default(now())
+  organization   Organization            @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  project        Project?                @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  task           Task?                   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  recipients     NotificationRecipient[]
+  deliveries     NotificationDelivery[]
+
+  @@unique([organizationId, eventKey])
+  @@index([organizationId, createdAt])
+}
+
+model NotificationRecipient {
+  id             String       @id @default(uuid()) @db.Uuid
+  notificationId String       @db.Uuid
+  memberId       String       @db.Uuid
+  readAt         DateTime?
+  acknowledgedAt DateTime?
+  createdAt      DateTime     @default(now())
+  notification   Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  member         Member       @relation(fields: [memberId], references: [id], onDelete: Restrict)
+
+  @@unique([notificationId, memberId])
+  @@index([memberId, readAt, createdAt])
+}
+
+model NotificationTemplate {
+  id             String                @id @default(uuid()) @db.Uuid
+  organizationId String                @db.Uuid
+  eventType      NotificationEventType
+  channel        NotificationChannel
+  titleTemplate  String
+  bodyTemplate   String
+  enabled        Boolean               @default(true)
+  updatedById    String?               @db.Uuid
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+  organization   Organization          @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  updatedBy      Member?               @relation("NotificationTemplateUpdatedBy", fields: [updatedById], references: [id], onDelete: Restrict)
+
+  @@unique([organizationId, eventType, channel])
+  @@index([organizationId, eventType, enabled])
+}
+
+model NotificationDelivery {
+  id                String              @id @default(uuid()) @db.Uuid
+  notificationId    String              @db.Uuid
+  memberId          String              @db.Uuid
+  channel           NotificationChannel
+  status            DeliveryStatus      @default(PENDING)
+  attemptCount      Int                 @default(0)
+  nextAttemptAt     DateTime?
+  sentAt            DateTime?
+  providerMessageId String?
+  lastError         String?
+  notification      Notification        @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  member            Member              @relation(fields: [memberId], references: [id], onDelete: Restrict)
+
+  @@unique([notificationId, memberId, channel])
+  @@index([status, nextAttemptAt])
+}
+
+model OutboxEvent {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @db.Uuid
+  aggregateType  String
+  aggregateId    String       @db.Uuid
+  eventType      String
+  dedupeKey      String       @unique
+  payload        Json
+  status         OutboxStatus @default(PENDING)
+  attemptCount   Int          @default(0)
+  nextAttemptAt  DateTime?
+  processedAt    DateTime?
+  lastError      String?
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([status, nextAttemptAt])
+  @@index([organizationId, aggregateType, aggregateId])
+}
+
+model Role {
+  id             String           @id @default(uuid()) @db.Uuid
+  organizationId String           @db.Uuid
+  code           String
+  name           String
+  createdAt      DateTime         @default(now())
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  permissions    RolePermission[]
+  memberRoles    MemberRole[]
+
+  @@unique([organizationId, code])
+}
+
+model Permission {
+  id          String           @id @default(uuid()) @db.Uuid
+  code        String           @unique
+  name        String
+  permissions RolePermission[]
+}
+
+model RolePermission {
+  roleId       String     @db.Uuid
+  permissionId String     @db.Uuid
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+}
+
+model MemberRole {
+  id           String      @id @default(uuid()) @db.Uuid
+  memberId     String      @db.Uuid
+  roleId       String      @db.Uuid
+  assignedById String?     @db.Uuid
+  createdAt    DateTime    @default(now())
+  member       Member      @relation("MemberRoles", fields: [memberId], references: [id], onDelete: Cascade)
+  role         Role        @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  assignedBy   Member?     @relation("RoleAssignedBy", fields: [assignedById], references: [id], onDelete: Restrict)
+  scopes       RoleScope[]
+
+  @@unique([memberId, roleId])
+}
+
+model RoleScope {
+  id           String      @id @default(uuid()) @db.Uuid
+  memberRoleId String      @db.Uuid
+  scopeType    ScopeType
+  departmentId String?     @db.Uuid
+  projectId    String?     @db.Uuid
+  memberRole   MemberRole  @relation(fields: [memberRoleId], references: [id], onDelete: Cascade)
+  department   Department? @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  project      Project?    @relation(fields: [projectId], references: [id], onDelete: Restrict)
+
+  @@unique([memberRoleId, scopeType, departmentId, projectId])
+  @@index([scopeType, departmentId, projectId])
+}
+
+model ProjectRoleGrant {
+  id            String             @id @default(uuid()) @db.Uuid
+  projectId     String             @db.Uuid
+  memberId      String             @db.Uuid
+  roleCode      String             @default("L2")
+  grantedById   String             @db.Uuid
+  parentGrantId String?            @db.Uuid
+  revokedAt     DateTime?
+  createdAt     DateTime           @default(now())
+  project       Project            @relation("ProjectRoleGrants", fields: [projectId], references: [id], onDelete: Cascade)
+  member        Member             @relation("ProjectRoleGrantMember", fields: [memberId], references: [id], onDelete: Cascade)
+  grantedBy     Member             @relation("ProjectRoleGrantActor", fields: [grantedById], references: [id], onDelete: Restrict)
+  parentGrant   ProjectRoleGrant?  @relation("ProjectRoleGrantTree", fields: [parentGrantId], references: [id], onDelete: Restrict)
+  childGrants   ProjectRoleGrant[] @relation("ProjectRoleGrantTree")
+
+  @@index([projectId, memberId, roleCode, revokedAt])
+  @@index([projectId, revokedAt])
+  @@index([grantedById, createdAt])
+}
+
+model AuditLog {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @db.Uuid
+  actorMemberId  String?      @db.Uuid
+  action         String
+  resourceType   String
+  resourceId     String       @db.Uuid
+  projectId      String?      @db.Uuid
+  taskId         String?      @db.Uuid
+  beforeJson     Json?
+  afterJson      Json?
+  requestId      String?
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  actor          Member?      @relation("AuditActor", fields: [actorMemberId], references: [id], onDelete: Restrict)
+  project        Project?     @relation(fields: [projectId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, resourceType, resourceId, createdAt])
+  @@index([organizationId, createdAt])
+}
+
+// Project OS 自身的钉钉调用月度计数，用于在组织额度耗尽前熔断外部请求。
+// 详细调用来源仍写入 AuditLog，本表只保存原子计数，避免并发下超额调用。
+model DingTalkApiUsage {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @db.Uuid
+  periodStart    DateTime     @db.Date
+  requestCount   Int          @default(0)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, periodStart])
+  @@index([organizationId, periodStart])
+}
+
+model AgentConversation {
+  id               String                     @id @default(uuid()) @db.Uuid
+  organizationId   String                     @db.Uuid
+  memberId         String                     @db.Uuid
+  channel          String
+  externalId       String
+  summary          String?
+  summaryUpdatedAt DateTime?
+  lastActiveAt     DateTime                   @default(now())
+  createdAt        DateTime                   @default(now())
+  updatedAt        DateTime                   @updatedAt
+  organization     Organization               @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  member           Member                     @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  messages         AgentConversationMessage[]
+  memories         AgentMemory[]
+
+  @@unique([organizationId, memberId, channel, externalId])
+  @@index([memberId, lastActiveAt])
+}
+
+model AgentConversationMessage {
+  id             String            @id @default(uuid()) @db.Uuid
+  conversationId String            @db.Uuid
+  role           String
+  content        String
+  metadata       Json?
+  ephemeral      Boolean           @default(false)
+  expiresAt      DateTime?
+  createdAt      DateTime          @default(now())
+  conversation   AgentConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+  @@index([conversationId, ephemeral, expiresAt])
+}
+
+model AgentMemory {
+  id                   String             @id @default(uuid()) @db.Uuid
+  organizationId       String             @db.Uuid
+  memberId             String             @db.Uuid
+  sourceConversationId String?            @db.Uuid
+  kind                 String
+  content              String
+  embedding            Json
+  expiresAt            DateTime?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  organization         Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  member               Member             @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  sourceConversation   AgentConversation? @relation(fields: [sourceConversationId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, memberId, createdAt])
+  @@index([sourceConversationId])
+}
+
+model Session {
+  id         String    @id @default(uuid()) @db.Uuid
+  memberId   String    @db.Uuid
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  lastSeenAt DateTime?
+  userAgent  String?
+  ipHash     String?
+  createdAt  DateTime  @default(now())
+  member     Member    @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([memberId, expiresAt])
+}
+
+model OAuthState {
+  id          String    @id @default(uuid()) @db.Uuid
+  provider    String
+  stateHash   String    @unique
+  redirectUri String
+  expiresAt   DateTime
+  consumedAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([provider, expiresAt])
+}
+
+// 微信小程序绑定码（方案 §5.3）：已登录成员在 Web 端生成 6 位短码，
+// 小程序端凭该码把微信 openid 绑定到本成员。库内只保存 sha256 哈希，
+// 限时（默认 10 分钟）+ 一次性消费，避免明文码泄露与被重复使用。
+model WechatBindingCode {
+  id         String    @id @default(uuid()) @db.Uuid
+  memberId   String    @db.Uuid
+  codeHash   String    @unique
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+  member     Member    @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([memberId, createdAt])
+  @@index([expiresAt])
+}
+
+model ExternalIdentity {
+  id              String                   @id @default(uuid()) @db.Uuid
+  memberId        String                   @db.Uuid
+  provider        ExternalIdentityProvider
+  corpId          String
+  userId          String?
+  unionId         String?
+  openId          String?
+  profileSnapshot Json?
+  lastSyncedAt    DateTime?
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+  member          Member                   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, corpId, userId])
+  @@unique([provider, corpId, unionId])
+  @@unique([provider, corpId, openId])
+  @@index([memberId, provider])
+}
+
+model Integration {
+  id               String              @id @default(uuid()) @db.Uuid
+  organizationId   String              @db.Uuid
+  provider         IntegrationProvider
+  clientId         String
+  corpId           String?
+  redirectUri      String?
+  secretCiphertext String
+  status           IntegrationStatus   @default(DISABLED)
+  lastSyncAt       DateTime?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  organization     Organization        @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  tokens           IntegrationToken[]
+
+  @@unique([organizationId, provider])
+}
+
+model IntegrationToken {
+  id                     String      @id @default(uuid()) @db.Uuid
+  integrationId          String      @db.Uuid
+  tokenType              String
+  accessTokenCiphertext  String?
+  refreshTokenCiphertext String?
+  expiresAt              DateTime?
+  updatedAt              DateTime    @updatedAt
+  integration            Integration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+
+  @@unique([integrationId, tokenType])
+}

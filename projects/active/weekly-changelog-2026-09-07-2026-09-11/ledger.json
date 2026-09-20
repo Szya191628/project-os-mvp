@@ -1,0 +1,40 @@
+{
+  "fps": 30,
+  "seams": [
+    {
+      "id": "title-to-permission",
+      "cut": 2.2,
+      "technique": "cut-the-curve LEFT",
+      "exit": { "selector": "#scene-title", "axis": "x", "dir": -1 },
+      "entry": { "selector": "#scene-t1", "axis": "x", "dir": -1, "travel": 8 }
+    },
+    {
+      "id": "permission-to-delivery",
+      "cut": 13.78,
+      "technique": "cut-the-curve LEFT",
+      "exit": { "selector": "#scene-t1", "axis": "x", "dir": -1 },
+      "entry": { "selector": "#scene-t2", "axis": "x", "dir": -1, "travel": 8 }
+    },
+    {
+      "id": "delivery-to-approval",
+      "cut": 22.24,
+      "technique": "cut-the-curve LEFT",
+      "exit": { "selector": "#scene-t2", "axis": "x", "dir": -1 },
+      "entry": { "selector": "#scene-t3", "axis": "x", "dir": -1, "travel": 8 }
+    },
+    {
+      "id": "approval-to-schedule",
+      "cut": 31.05,
+      "technique": "cut-the-curve LEFT",
+      "exit": { "selector": "#scene-t3", "axis": "x", "dir": -1 },
+      "entry": { "selector": "#scene-t4", "axis": "x", "dir": -1, "travel": 8 }
+    },
+    {
+      "id": "schedule-to-outro",
+      "cut": 38.61,
+      "technique": "cut-the-curve LEFT",
+      "exit": { "selector": "#scene-t4", "axis": "x", "dir": -1 },
+      "entry": { "selector": "#scene-outro", "axis": "x", "dir": -1, "travel": 8 }
+    }
+  ]
+}

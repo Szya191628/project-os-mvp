@@ -1,0 +1,44 @@
+[
+  {
+    "taskId": "a2b47665-68c2-4c2a-add0-1f71816d84a3",
+    "status": "IN_PROGRESS",
+    "progress": 1,
+    "actualStart": "2026-09-07T00:00:00.000Z",
+    "actualEnd": null,
+    "readyAt": null,
+    "completionNote": null,
+    "overdueReason": null,
+    "completionApprovalStatus": "APPROVED",
+    "completionConfirmedAt": null,
+    "updatedById": null,
+    "updatedAt": "2026-09-07T06:47:59.949Z"
+  },
+  {
+    "taskId": "c66d1c43-f20b-4eb0-ba41-4e754b4397a3",
+    "status": "EARLY_FINISHED",
+    "progress": 100,
+    "actualStart": "2026-09-02T00:00:00.000Z",
+    "actualEnd": "2026-09-01T00:00:00.000Z",
+    "readyAt": null,
+    "completionNote": "",
+    "overdueReason": "",
+    "completionApprovalStatus": "APPROVED",
+    "completionConfirmedAt": "2026-09-01T00:00:00.000Z",
+    "updatedById": null,
+    "updatedAt": "2026-09-07T06:48:00.035Z"
+  },
+  {
+    "taskId": "f96d297c-0099-49a0-afe3-f5a59fea0692",
+    "status": "IN_PROGRESS",
+    "progress": 1,
+    "actualStart": "2026-09-02T00:00:00.000Z",
+    "actualEnd": null,
+    "readyAt": null,
+    "completionNote": null,
+    "overdueReason": null,
+    "completionApprovalStatus": "APPROVED",
+    "completionConfirmedAt": null,
+    "updatedById": null,
+    "updatedAt": "2026-09-07T06:48:00.092Z"
+  }
+]

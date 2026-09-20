@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1080, height=1080">
+  <title>Project OS Weekly — 2026.09.07—09.11</title>
+  <script src="assets/gsap.min.js"></script>
+  <style>
+    @font-face { font-family:'ABC Solar Display'; src:url('assets/fonts/ABCSolarDisplay-Bold.woff2') format('woff2'); font-weight:700; font-display:block; }
+    @font-face { font-family:'TT Norms Pro'; src:url('assets/fonts/TT_Norms_Pro_Normal.woff2') format('woff2'); font-weight:400; font-display:block; }
+    @font-face { font-family:'TT Norms Pro'; src:url('assets/fonts/TT_Norms_Pro_Medium.woff2') format('woff2'); font-weight:500; font-display:block; }
+    @font-face { font-family:'TT Norms Pro'; src:url('assets/fonts/TT_Norms_Pro_Bold.woff2') format('woff2'); font-weight:700; font-display:block; }
+    @font-face { font-family:'TT Norms Mono'; src:url('assets/fonts/tt_norms_pro_mono_regular-webfont.woff2') format('woff2'); font-weight:400; font-display:block; }
+    :root {
+      --ink: #f5f6f4;
+      --ink2: rgba(245,246,244,.72);
+      --dim: rgba(245,246,244,.66);
+      --green: #5ef17c;
+      --bg: #0a0c0b;
+      --glass: rgba(10,12,11,.78);
+      --glass-line: rgba(190,255,205,.32);
+      --muted-line: rgba(245,246,244,.14);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 1080px; height: 1080px; background: var(--bg); overflow: hidden;
+      font-family: 'TT Norms Pro', sans-serif; color: var(--ink); }
+    #root { position: relative; width: 1080px; height: 1080px; overflow: hidden; background: var(--bg); }
+    #bg-video { position: absolute; inset: 0; width: 1080px; height: 1080px; object-fit: cover; z-index: 0; }
+    #bg-scrim { position: absolute; inset: 0; z-index: 1; background: rgba(8,10,9,.25); }
+    .chrome { position: absolute; z-index: 6; }
+    #kicker-chip { top: 44px; left: 76px; font-family: 'TT Norms Mono', monospace; font-size: 20px;
+      letter-spacing: .06em; color: var(--ink2); background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.14); border-radius: 12px; padding: 10px 18px; }
+    #progress { top: 58px; right: 76px; display: flex; gap: 10px; }
+    #progress .dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(245,246,244,.18); }
+    .slide { position: absolute; inset: 0; z-index: 4; }
+    .scene-shell { position: absolute; inset: 0; }
+    .sec-chip { position: absolute; top: 128px; left: 76px; font-family: 'TT Norms Mono', monospace;
+      font-size: 22px; letter-spacing: .05em; color: var(--ink2);
+      background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.14);
+      border-radius: 12px; padding: 10px 16px; }
+    .sec-head { position: absolute; top: 186px; left: 76px; font-family: 'ABC Solar Display', sans-serif;
+      font-weight: 700; font-size: 54px; letter-spacing: -.01em; color: var(--ink); }
+    .glass { background: var(--glass); border: 1px solid var(--glass-line);
+      border-radius: 22px; box-shadow: 0 24px 60px rgba(0,0,0,.5); }
+    .reveal { opacity: 0; }
+    .mono { font-family: 'TT Norms Mono', monospace; }
+    .eyebrow { font: 18px/1.1 'TT Norms Mono', monospace; letter-spacing: .06em; color: var(--dim); }
+    .mock-topline { height: 68px; padding: 0 28px; display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid var(--muted-line); font: 20px 'TT Norms Mono', monospace; letter-spacing: .04em; }
+    .state-chip { padding: 8px 13px; border-radius: 12px; color: var(--ink2); background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.14); font: 18px 'TT Norms Mono', monospace; }
+
+    /* Title */
+    .title-kicker { position: absolute; top: 256px; left: 76px; font: 22px 'TT Norms Mono', monospace; letter-spacing: .08em; color: var(--green); }
+    .title-head { position: absolute; top: 330px; left: 76px; font: 700 112px/1.05 'ABC Solar Display', sans-serif; letter-spacing: -.035em; }
+    .title-head span { display: block; }
+    .title-note { position: absolute; top: 598px; left: 80px; max-width: 690px; font-size: 30px; line-height: 1.25; color: var(--ink2); }
+    .title-rule { position: absolute; top: 716px; left: 80px; width: 300px; height: 5px; background: var(--green); transform-origin: left center; }
+    .title-stamp { position: absolute; left: 80px; bottom: 92px; font: 20px 'TT Norms Mono', monospace; color: var(--dim); letter-spacing: .05em; }
+
+    /* Permission mock */
+    .permission-card { position: absolute; top: 304px; left: 76px; width: 928px; height: 570px; }
+    .permission-body { display: grid; grid-template-columns: 265px 1fr 238px; gap: 24px; padding: 30px 28px; }
+    .perm-subject { padding: 22px; border: 1px solid var(--muted-line); border-radius: 18px; background: rgba(255,255,255,.035); }
+    .avatar { width: 62px; height: 62px; display: grid; place-items: center; margin-bottom: 22px; border-radius: 50%;
+      color: var(--bg); background: var(--green); font: 700 28px 'ABC Solar Display', sans-serif; }
+    .subject-name { margin-top: 12px; font-size: 30px; font-weight: 700; }
+    .subject-name .mini { font: 18px 'TT Norms Mono', monospace; color: var(--green); }
+    .subject-note { margin-top: 42px; font: 18px/1.35 'TT Norms Mono', monospace; color: var(--dim); }
+    .subject-note span, .supervisor-note span { display: block; }
+    .perm-actions { display: grid; align-content: start; gap: 12px; }
+    .action-row { min-height: 70px; display: flex; align-items: center; justify-content: space-between; padding: 0 18px;
+      border: 1px solid var(--muted-line); border-radius: 16px; background: rgba(255,255,255,.03); }
+    .action-label { font-size: 25px; }
+    .action-state { padding: 7px 10px; border-radius: 10px; background: rgba(255,255,255,.07); color: var(--dim); font: 17px 'TT Norms Mono', monospace; }
+    .perm-supervisor { padding: 22px; border: 1px solid rgba(190,255,205,.22); border-radius: 18px; background: rgba(94,241,124,.045); }
+    .supervisor-title { margin-top: 14px; font-size: 27px; font-weight: 700; }
+    .supervisor-eye { display: flex; gap: 10px; align-items: center; margin-top: 28px; color: var(--green); font: 18px 'TT Norms Mono', monospace; }
+    .eye-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--green); box-shadow: 0 0 18px rgba(94,241,124,.75); }
+    .supervisor-note { margin-top: 24px; font-size: 20px; line-height: 1.35; color: var(--ink2); }
+
+    /* DingTalk delivery mock */
+    .delivery-card { position: absolute; top: 304px; left: 76px; width: 928px; height: 570px; }
+    .delivery-body { display: grid; grid-template-columns: 1fr 315px; gap: 26px; padding: 28px; }
+    .delivery-meta { display: grid; gap: 12px; }
+    .delivery-field { min-height: 62px; display: flex; align-items: center; justify-content: space-between; padding: 0 18px;
+      border-radius: 14px; background: rgba(255,255,255,.04); border: 1px solid var(--muted-line); }
+    .delivery-field span { font: 18px 'TT Norms Mono', monospace; color: var(--dim); }
+    .delivery-field strong { font-size: 26px; font-weight: 500; }
+    .delivery-track { margin-top: 22px; padding: 18px; border: 1px solid var(--muted-line); border-radius: 16px; }
+    .track-label { display: flex; justify-content: space-between; font: 18px 'TT Norms Mono', monospace; color: var(--dim); }
+    .track-label strong { color: var(--ink); font-size: 23px; }
+    .bar { height: 12px; margin-top: 15px; overflow: hidden; border-radius: 8px; background: rgba(255,255,255,.09); }
+    .bar-fill { width: 100%; height: 100%; transform-origin: left center; border-radius: inherit; background: var(--green); }
+    .delivery-right { display: grid; align-content: start; gap: 15px; }
+    .delivery-stack { min-height: 210px; padding: 18px; border: 1px solid var(--muted-line); border-radius: 16px; }
+    .stack-title { font: 18px 'TT Norms Mono', monospace; color: var(--dim); }
+    .attachment { min-height: 52px; display: flex; align-items: center; justify-content: space-between; margin-top: 12px; padding: 0 13px;
+      border-radius: 12px; background: rgba(255,255,255,.06); font-size: 21px; }
+    .attachment small { color: var(--green); font: 16px 'TT Norms Mono', monospace; }
+    .delivery-types { display: flex; gap: 10px; }
+    .delivery-type { flex: 1; min-height: 68px; display: grid; place-items: center; border-radius: 14px; border: 1px solid var(--muted-line);
+      color: var(--dim); background: rgba(255,255,255,.035); font: 18px 'TT Norms Mono', monospace; }
+    .delivery-type.active { color: var(--bg); background: var(--green); border-color: var(--green); }
+    .delivery-footer { grid-column: 1 / -1; display: flex; justify-content: space-between; padding-top: 16px; border-top: 1px solid var(--muted-line);
+      color: var(--dim); font: 18px 'TT Norms Mono', monospace; }
+    #delivery-sync { color: var(--green); }
+
+    /* Approval mock */
+    .approval-panel { position: absolute; top: 304px; left: 76px; width: 928px; height: 570px; }
+    .approval-body { padding: 34px 30px; }
+    .approval-route { display: grid; grid-template-columns: 1fr 86px 1fr; align-items: center; }
+    .approval-node { min-height: 190px; padding: 22px; border: 1px solid var(--muted-line); border-radius: 18px; background: rgba(255,255,255,.035); }
+    .step-index { display: block; color: var(--green); font: 18px 'TT Norms Mono', monospace; }
+    .step-role { display: block; margin-top: 20px; font-size: 32px; font-weight: 700; }
+    .status-wrap { display: block; margin-top: 30px; font: 19px 'TT Norms Mono', monospace; color: var(--dim); }
+    .status-approved { color: var(--green); }
+    .route-link { height: 4px; transform-origin: left center; background: rgba(245,246,244,.2); }
+    .approval-result { min-height: 170px; display: grid; grid-template-columns: 220px 1fr; align-items: center; margin-top: 38px; padding: 24px 28px;
+      border: 1px solid rgba(190,255,205,.3); border-radius: 18px; background: rgba(94,241,124,.045); }
+    .result-label { font: 19px 'TT Norms Mono', monospace; color: var(--dim); }
+    .result-main { font: 700 42px 'ABC Solar Display', sans-serif; }
+    .result-note { margin-top: 12px; font-size: 22px; color: var(--ink2); }
+
+    /* Schedule mock */
+    .schedule-panel { position: absolute; top: 304px; left: 76px; width: 928px; height: 570px; }
+    .schedule-body { padding: 34px 28px; }
+    .schedule-lane { display: grid; grid-template-columns: 1fr 84px 1fr; align-items: center; }
+    .task-card { min-height: 210px; padding: 22px; border: 1px solid var(--muted-line); border-radius: 18px; background: rgba(255,255,255,.035); }
+    .task-id { font: 18px 'TT Norms Mono', monospace; color: var(--dim); }
+    .task-name { margin-top: 18px; font-size: 31px; font-weight: 700; }
+    .task-status { margin-top: 28px; color: var(--green); font: 19px 'TT Norms Mono', monospace; }
+    .task-date { margin-top: 10px; color: var(--ink2); font: 19px 'TT Norms Mono', monospace; }
+    .task-bar { height: 12px; margin-top: 18px; overflow: hidden; border-radius: 8px; background: rgba(255,255,255,.08); }
+    .schedule-arrow { text-align: center; color: var(--green); font-size: 44px; }
+    .downstream .task-status { color: var(--dim); }
+    .reminder-row { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 28px; }
+    .reminder-card, .overdue-card { min-height: 126px; padding: 20px 22px; border-radius: 16px; border: 1px solid var(--muted-line); background: rgba(255,255,255,.035); }
+    .reminder-card { border-color: rgba(190,255,205,.32); background: rgba(94,241,124,.045); }
+    .reminder-card span, .overdue-card span { display: block; font: 17px 'TT Norms Mono', monospace; color: var(--dim); }
+    .reminder-card strong, .overdue-card strong { display: block; margin-top: 14px; font-size: 28px; }
+    .overdue-card strong { color: var(--green); }
+
+    /* Outro */
+    .outro-kicker { position: absolute; top: 276px; left: 80px; color: var(--green); font: 22px 'TT Norms Mono', monospace; letter-spacing: .08em; }
+    .outro-head { position: absolute; top: 356px; left: 76px; font: 700 88px/.98 'ABC Solar Display', sans-serif; letter-spacing: -.03em; }
+    .outro-head span { display: block; }
+    .outro-rule { position: absolute; top: 592px; left: 80px; width: 540px; height: 5px; transform-origin: left center; background: var(--green); }
+    .outro-note { position: absolute; top: 650px; left: 80px; font-size: 30px; color: var(--ink2); }
+    .outro-meta { position: absolute; left: 80px; bottom: 92px; color: var(--dim); font: 20px 'TT Norms Mono', monospace; letter-spacing: .05em; }
+
+    /* caption rail — overlay on top of the film, never a reserved band */
+    #cap-line { position: absolute; left: 0; right: 0; top: 990px; height: 52px; text-align: center;
+      z-index: 7; font-family: 'TT Norms Pro', sans-serif; font-weight: 500; font-size: 32px;
+      letter-spacing: .01em; color: rgba(245,246,244,.94);
+      text-shadow: 0 2px 14px rgba(0,0,0,.85), 0 0 3px rgba(0,0,0,.6);
+      white-space: nowrap; pointer-events: none; }
+    .cap-phrase { position: absolute; left: 0; right: 0; }
+    .cap-w { display: inline-block; margin: 0 4px; }
+  </style>
+</head>
+<body>
+  <div id="root" data-composition-id="main" data-start="0" data-duration="46" data-width="1080" data-height="1080">
+    <video id="bg-video" class="clip" src="assets/bg-pattern-46s.mp4" muted data-start="0" data-duration="46" data-track-index="0"></video>
+    <div id="bg-scrim"></div>
+    <div id="kicker-chip" class="chrome">PROJECT OS WEEKLY <span style="color:rgba(245,246,244,.66)">· 09.07—09.11</span></div>
+    <div id="progress" class="chrome"><span class="dot" id="dot1"></span><span class="dot" id="dot2"></span><span class="dot" id="dot3"></span><span class="dot" id="dot4"></span></div>
+    <div id="cap-line" class="chrome" data-layout-allow-overlap data-layout-allow-overflow></div>
+
+    <div id="s-title" class="slide clip" data-start="0" data-duration="2.2" data-track-index="1" data-layout-allow-overflow>
+      <div id="scene-title" class="scene-shell">
+        <div id="title-kicker" class="title-kicker reveal">WEEKLY BUILD / 2026</div>
+        <div id="title-head" class="title-head reveal"><span>交付闭环，</span><span>开始运转。</span></div>
+        <div id="title-note" class="title-note reveal">权限、钉钉、审批和排期，在同一条任务链路里接上了。</div>
+        <div id="title-rule" class="title-rule reveal"></div>
+        <div id="title-stamp" class="title-stamp reveal">PROJECT OS MVP · WEEK 37</div>
+      </div>
+    </div>
+
+    <div id="s-t1" class="slide clip" data-start="2.2" data-duration="11.58" data-track-index="1" data-layout-allow-overflow data-layout-allow-overlap>
+      <div id="scene-t1" class="scene-shell">
+        <div class="sec-chip">01 · 权限治理</div>
+        <div class="sec-head">按钮先懂权限</div>
+        <div id="perm-mock" class="glass permission-card reveal" data-layout-allow-overlap>
+        <div class="mock-topline"><span>PROJECT ACCESS / MEMBER</span><span id="perm-mode" class="state-chip">PROJECT-SCOPED</span></div>
+        <div class="permission-body">
+          <div id="perm-subject" class="perm-subject reveal">
+            <div class="avatar">L3</div>
+            <div class="eyebrow">当前成员</div>
+            <div class="subject-name">执行成员 <span class="mini">L3</span></div>
+            <div class="subject-note">只负责自己的任务<span>项目范围内执行</span></div>
+          </div>
+          <div class="perm-actions">
+            <div id="perm-row-flow" class="action-row reveal"><span class="action-label">流程编辑</span><span id="perm-flow-state" class="action-state">已锁定</span></div>
+            <div id="perm-row-publish" class="action-row reveal"><span class="action-label">保存 / 发布</span><span id="perm-publish-state" class="action-state">已锁定</span></div>
+            <div id="perm-row-member" class="action-row reveal"><span class="action-label">成员管理</span><span id="perm-member-state" class="action-state">已锁定</span></div>
+            <div id="perm-row-task" class="action-row reveal"><span class="action-label">我的任务</span><span id="perm-task-state" class="action-state">可执行</span></div>
+          </div>
+          <div id="perm-supervisor" class="perm-supervisor reveal">
+            <div class="eyebrow">直属主管</div>
+            <div class="supervisor-title">仅供查看</div>
+            <div class="supervisor-eye"><span class="eye-dot"></span>VIEW ONLY</div>
+            <div class="supervisor-note">能查看任务和交付物<span>没有编辑、审批权</span></div>
+          </div>
+        </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="s-t2" class="slide clip" data-start="13.78" data-duration="8.46" data-track-index="1" data-layout-allow-overflow data-layout-allow-overlap>
+      <div id="scene-t2" class="scene-shell">
+        <div class="sec-chip">02 · 钉钉交付</div>
+        <div class="sec-head">一次提交，不止一个文件</div>
+        <div id="delivery-card" class="glass delivery-card reveal" data-layout-allow-overlap>
+        <div class="mock-topline"><span>DINGTALK OA / TASK DELIVERY</span><span class="state-chip">SYNC READY</span></div>
+        <div class="delivery-body">
+          <div class="delivery-meta">
+            <div id="delivery-field-project" class="delivery-field reveal"><span>项目编号</span><strong>PRJ-001</strong></div>
+            <div id="delivery-field-task" class="delivery-field reveal"><span>任务编号</span><strong>1.2 · 设计评审</strong></div>
+            <div id="delivery-field-progress" class="delivery-field reveal"><span>当前进度</span><strong id="delivery-progress-value">65%</strong></div>
+            <div id="delivery-track" class="delivery-track reveal"><div class="track-label"><span>阶段交付进度</span><strong>SYNC</strong></div><div class="bar"><div id="delivery-bar" class="bar-fill"></div></div></div>
+          </div>
+          <div class="delivery-right">
+            <div id="delivery-stack" class="delivery-stack reveal"><div class="stack-title">交付物 / MULTI-VERSION</div><div id="delivery-attachment-1" class="attachment reveal"><span>方案说明 v1</span><small>已保存</small></div><div id="delivery-attachment-2" class="attachment reveal"><span>测试报告 v2</span><small>新提交</small></div></div>
+            <div class="delivery-types"><div id="delivery-stage-chip" class="delivery-type active reveal">阶段交付</div><div id="delivery-final-chip" class="delivery-type reveal">最终交付</div></div>
+          </div>
+          <div class="delivery-footer"><span id="delivery-count">1 个阶段交付</span><span id="delivery-sync">已同步到 Project OS</span></div>
+        </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="s-t3" class="slide clip" data-start="22.24" data-duration="8.81" data-track-index="1" data-layout-allow-overflow data-layout-allow-overlap>
+      <div id="scene-t3" class="scene-shell">
+        <div class="sec-chip">03 · 审批门禁</div>
+        <div class="sec-head">通过审批，任务才完成</div>
+        <div id="approval-panel" class="glass approval-panel reveal" data-layout-allow-overlap>
+        <div class="mock-topline"><span>FINAL DELIVERY GATE</span><span class="state-chip">APPROVAL REQUIRED</span></div>
+        <div class="approval-body">
+          <div class="approval-route">
+            <div id="approval-l2" class="approval-node reveal"><span class="step-index">STEP 01</span><span class="step-role">L2 主管</span><span class="status-wrap"><span id="approval-l2-pending">待审批</span><span id="approval-l2-approved" class="status-approved reveal">已通过</span></span></div>
+            <div id="approval-link-1" class="route-link reveal"></div>
+            <div id="approval-admin" class="approval-node reveal"><span class="step-index">STEP 02</span><span class="step-role">管理员</span><span class="status-wrap"><span id="approval-admin-pending">等待上一步</span><span id="approval-admin-approved" class="status-approved reveal">已通过</span></span></div>
+          </div>
+          <div id="approval-result" class="approval-result reveal"><div class="result-label">TASK STATUS</div><div><div id="approval-result-pending" class="result-main">等待全部通过</div><div id="approval-result-done" class="result-main status-approved reveal">TASK COMPLETED</div><div id="approval-result-note" class="result-note reveal">写入实际完成时间 · 启动下游任务</div></div></div>
+        </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="s-t4" class="slide clip" data-start="31.05" data-duration="7.56" data-track-index="1" data-layout-allow-overflow data-layout-allow-overlap>
+      <div id="scene-t4" class="scene-shell">
+        <div class="sec-chip">04 · 排期提醒</div>
+        <div class="sec-head">完成之后，计划继续走</div>
+        <div id="schedule-panel" class="glass schedule-panel reveal" data-layout-allow-overlap>
+        <div class="mock-topline"><span>SCHEDULE / DEPENDENCY CHAIN</span><span class="state-chip">AUTO-REPLAN</span></div>
+        <div class="schedule-body">
+          <div class="schedule-lane">
+            <div id="schedule-current" class="task-card reveal"><div class="task-id">TASK 1.2</div><div class="task-name">设计评审</div><div class="task-status">✓ 已完成审批</div><div class="task-bar"><div id="schedule-fill" class="bar-fill"></div></div></div>
+            <div id="schedule-arrow" class="schedule-arrow reveal">→</div>
+            <div id="schedule-downstream" class="task-card downstream reveal"><div class="task-id">TASK 1.3</div><div class="task-name">单机详细设计</div><div id="downstream-status" class="task-status">等待解锁</div><div id="downstream-unlocked" class="task-status status-approved reveal">已解锁 · 可启动</div><div class="task-date">计划开始 · <span id="downstream-date">09.15</span></div></div>
+          </div>
+          <div class="reminder-row"><div id="reminder-card" class="reminder-card reveal"><span>START WARNING</span><strong>开始前 3 天提醒</strong></div><div id="overdue-card" class="overdue-card reveal"><span>OVERDUE REASON</span><strong>超期完成 · 原因必填</strong></div></div>
+        </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="s-outro" class="slide clip" data-start="38.61" data-duration="7.39" data-track-index="1" data-layout-allow-overflow data-layout-allow-overlap>
+      <div id="scene-outro" class="scene-shell">
+        <div id="outro-kicker" class="outro-kicker reveal">THE LOOP IS TRACEABLE</div>
+        <div id="outro-head" class="outro-head reveal"><span>计划 → 执行</span><span>交付 → 下游</span></div>
+        <div id="outro-rule" class="outro-rule reveal"></div>
+        <div id="outro-note" class="outro-note reveal">Project OS · 2026.09.07—09.11</div>
+        <div id="outro-meta" class="outro-meta reveal">WEEKLY BUILD / END OF REPORT</div>
+      </div>
+    </div>
+
+    <audio id="bgm" src="bgm.mp3" data-start="0" data-duration="46" data-track-index="2" data-volume="0.14" data-media-start="0"></audio>
+    <audio id="vo" src="voiceover.mp3" data-start="0" data-duration="44.33" data-track-index="3" data-volume="1.0"></audio>
+  </div>
+
+  <script>
+    gsap.defaults({ overwrite: 'auto' });
+    const tl = gsap.timeline({ paused: true });
+    const CUT1 = 2.2;
+    const CUT2 = 13.78;
+    const CUT3 = 22.24;
+    const CUT4 = 31.05;
+    const CUT5 = 38.61;
+
+    // Title entry: waterfall-style arrival, then a quiet hold before the first cut.
+    tl.fromTo('#title-kicker', { autoAlpha: 0, y: -18 }, { autoAlpha: 1, y: 0, duration: .42, ease: 'power3.out', immediateRender: false }, .15);
+    tl.fromTo('#title-head', { autoAlpha: 0, y: 66, scale: .95 }, { autoAlpha: 1, y: 0, scale: 1, duration: .72, ease: 'expo.out', immediateRender: false }, .30);
+    tl.fromTo('#title-note', { autoAlpha: 0, x: 34 }, { autoAlpha: 1, x: 0, duration: .48, ease: 'power4.out', immediateRender: false }, .92);
+    tl.fromTo('#title-rule', { autoAlpha: 0, scaleX: 0 }, { autoAlpha: 1, scaleX: 1, duration: .56, ease: 'power3.out', immediateRender: false }, 1.22);
+    tl.fromTo('#title-stamp', { autoAlpha: 0, y: 16 }, { autoAlpha: 1, y: 0, duration: .36, ease: 'power2.out', immediateRender: false }, 1.42);
+
+    // Progress dots are state changes, not callbacks.
+    tl.set(['#dot1', '#dot2', '#dot3', '#dot4'], { backgroundColor: 'rgba(245,246,244,.18)' }, 0);
+    tl.set('#dot1', { backgroundColor: '#f5f6f4' }, CUT1);
+    tl.set('#dot2', { backgroundColor: '#f5f6f4' }, CUT2);
+    tl.set('#dot1', { backgroundColor: 'rgba(245,246,244,.45)' }, CUT2);
+    tl.set('#dot3', { backgroundColor: '#f5f6f4' }, CUT3);
+    tl.set('#dot2', { backgroundColor: 'rgba(245,246,244,.45)' }, CUT3);
+    tl.set('#dot4', { backgroundColor: '#f5f6f4' }, CUT4);
+    tl.set('#dot3', { backgroundColor: 'rgba(245,246,244,.45)' }, CUT4);
+
+    // Theme 1: project-level permission, staged reveal route.
+    tl.fromTo('#perm-mock', { autoAlpha: 0, y: 44, scale: .98 }, { autoAlpha: 1, y: 0, scale: 1, duration: .58, ease: 'power4.out', immediateRender: false }, CUT1 + .42);
+    tl.fromTo('#perm-subject', { autoAlpha: 0, x: -30 }, { autoAlpha: 1, x: 0, duration: .42, ease: 'power3.out', immediateRender: false }, CUT1 + .82);
+    tl.fromTo('#perm-row-flow', { autoAlpha: 0, x: 34 }, { autoAlpha: 1, x: 0, duration: .38, ease: 'power3.out', immediateRender: false }, CUT1 + 1.00);
+    tl.fromTo('#perm-row-publish', { autoAlpha: 0, x: 34 }, { autoAlpha: 1, x: 0, duration: .38, ease: 'power3.out', immediateRender: false }, CUT1 + 1.16);
+    tl.fromTo('#perm-row-member', { autoAlpha: 0, x: 34 }, { autoAlpha: 1, x: 0, duration: .38, ease: 'power3.out', immediateRender: false }, CUT1 + 1.32);
+    tl.fromTo('#perm-row-task', { autoAlpha: 0, x: 34 }, { autoAlpha: 1, x: 0, duration: .38, ease: 'power3.out', immediateRender: false }, CUT1 + 1.48);
+    tl.fromTo('#perm-supervisor', { autoAlpha: 0, x: 30 }, { autoAlpha: 1, x: 0, duration: .48, ease: 'expo.out', immediateRender: false }, CUT1 + 1.70);
+    tl.to('#perm-mode', { backgroundColor: '#5ef17c', color: '#0a0c0b', duration: .30, ease: 'power2.out' }, CUT1 + 3.40);
+    tl.to('#perm-task-state', { backgroundColor: '#5ef17c', color: '#0a0c0b', duration: .30, ease: 'power2.out' }, CUT1 + 3.40);
+    tl.to('#perm-flow-state, #perm-publish-state, #perm-member-state', { color: 'rgba(245,246,244,.48)', duration: .28, ease: 'power2.out' }, CUT1 + 4.45);
+
+    // Theme 2: DingTalk delivery, sequenced UI life route.
+    tl.fromTo('#delivery-card', { autoAlpha: 0, y: 44, scale: .98 }, { autoAlpha: 1, y: 0, scale: 1, duration: .56, ease: 'power4.out', immediateRender: false }, CUT2 + .42);
+    tl.fromTo('#delivery-field-project', { autoAlpha: 0, x: -26 }, { autoAlpha: 1, x: 0, duration: .34, ease: 'power3.out', immediateRender: false }, CUT2 + .85);
+    tl.fromTo('#delivery-field-task', { autoAlpha: 0, x: -26 }, { autoAlpha: 1, x: 0, duration: .34, ease: 'power3.out', immediateRender: false }, CUT2 + 1.04);
+    tl.fromTo('#delivery-field-progress', { autoAlpha: 0, x: -26 }, { autoAlpha: 1, x: 0, duration: .34, ease: 'power3.out', immediateRender: false }, CUT2 + 1.23);
+    tl.fromTo('#delivery-track', { autoAlpha: 0, y: 18 }, { autoAlpha: 1, y: 0, duration: .36, ease: 'power3.out', immediateRender: false }, CUT2 + 1.44);
+    tl.fromTo('#delivery-stack', { autoAlpha: 0, x: 28 }, { autoAlpha: 1, x: 0, duration: .42, ease: 'expo.out', immediateRender: false }, CUT2 + 1.20);
+    tl.fromTo('#delivery-attachment-1', { autoAlpha: 0, y: 20 }, { autoAlpha: 1, y: 0, duration: .30, ease: 'power3.out', immediateRender: false }, CUT2 + 1.78);
+    tl.fromTo('#delivery-attachment-2', { autoAlpha: 0, y: 20 }, { autoAlpha: 1, y: 0, duration: .30, ease: 'power3.out', immediateRender: false }, CUT2 + 2.02);
+    tl.fromTo('#delivery-stage-chip', { autoAlpha: 0, y: 18 }, { autoAlpha: 1, y: 0, duration: .32, ease: 'power4.out', immediateRender: false }, CUT2 + 2.38);
+    tl.fromTo('#delivery-final-chip', { autoAlpha: 0, y: 18 }, { autoAlpha: 1, y: 0, duration: .32, ease: 'power4.out', immediateRender: false }, CUT2 + 2.58);
+    tl.fromTo('#delivery-bar', { scaleX: 0 }, { scaleX: .65, duration: .72, ease: 'power2.inOut', immediateRender: false }, CUT2 + 2.82);
+    const deliveryCount = { value: 1 };
+    const deliveryCountNode = document.getElementById('delivery-count');
+    tl.to(deliveryCount, { value: 2, duration: .65, ease: 'power2.out', onUpdate: () => { deliveryCountNode.textContent = `${Math.round(deliveryCount.value)} 个阶段交付`; } }, CUT2 + 4.14);
+    tl.to('#delivery-final-chip', { backgroundColor: '#5ef17c', color: '#0a0c0b', duration: .28, ease: 'power2.out' }, CUT2 + 5.20);
+    tl.to('#delivery-sync', { color: '#f5f6f4', duration: .28, ease: 'power2.out' }, CUT2 + 5.20);
+
+    // Theme 3: approval gate, causal step-by-step route.
+    tl.fromTo('#approval-panel', { autoAlpha: 0, y: 44, scale: .98 }, { autoAlpha: 1, y: 0, scale: 1, duration: .56, ease: 'power4.out', immediateRender: false }, CUT3 + .42);
+    tl.fromTo('#approval-l2', { autoAlpha: 0, x: -30 }, { autoAlpha: 1, x: 0, duration: .42, ease: 'power3.out', immediateRender: false }, CUT3 + .90);
+    tl.fromTo('#approval-link-1', { autoAlpha: 0, scaleX: 0 }, { autoAlpha: 1, scaleX: 1, duration: .38, ease: 'power3.out', immediateRender: false }, CUT3 + 1.22);
+    tl.fromTo('#approval-admin', { autoAlpha: 0, x: 30 }, { autoAlpha: 1, x: 0, duration: .42, ease: 'expo.out', immediateRender: false }, CUT3 + 1.44);
+    tl.fromTo('#approval-l2-approved', { autoAlpha: 0, y: 12 }, { autoAlpha: 1, y: 0, duration: .30, ease: 'power3.out', immediateRender: false }, CUT3 + 3.02);
+    tl.to('#approval-l2-pending', { autoAlpha: 0, duration: .18, ease: 'none' }, CUT3 + 3.02);
+    tl.fromTo('#approval-admin-approved', { autoAlpha: 0, y: 12 }, { autoAlpha: 1, y: 0, duration: .30, ease: 'power3.out', immediateRender: false }, CUT3 + 4.48);
+    tl.to('#approval-admin-pending', { autoAlpha: 0, duration: .18, ease: 'none' }, CUT3 + 4.48);
+    tl.fromTo('#approval-result', { autoAlpha: 0, y: 22 }, { autoAlpha: 1, y: 0, duration: .42, ease: 'power4.out', immediateRender: false }, CUT3 + 1.95);
+    tl.fromTo('#approval-result-done', { autoAlpha: 0, scale: .92 }, { autoAlpha: 1, scale: 1, duration: .42, ease: 'expo.out', immediateRender: false }, CUT3 + 5.10);
+    tl.to('#approval-result-pending', { autoAlpha: 0, duration: .18, ease: 'none' }, CUT3 + 5.10);
+    tl.fromTo('#approval-result-note', { autoAlpha: 0, y: 10 }, { autoAlpha: 1, y: 0, duration: .30, ease: 'power2.out', immediateRender: false }, CUT3 + 5.38);
+
+    // Theme 4: dependency re-plan and reminders, animated sequence route.
+    tl.fromTo('#schedule-panel', { autoAlpha: 0, y: 44, scale: .98 }, { autoAlpha: 1, y: 0, scale: 1, duration: .56, ease: 'power4.out', immediateRender: false }, CUT4 + .42);
+    tl.fromTo('#schedule-current', { autoAlpha: 0, x: -30 }, { autoAlpha: 1, x: 0, duration: .42, ease: 'power3.out', immediateRender: false }, CUT4 + .88);
+    tl.fromTo('#schedule-arrow', { autoAlpha: 0, x: -18 }, { autoAlpha: 1, x: 0, duration: .34, ease: 'power3.out', immediateRender: false }, CUT4 + 1.16);
+    tl.fromTo('#schedule-downstream', { autoAlpha: 0, x: 30 }, { autoAlpha: 1, x: 0, duration: .42, ease: 'expo.out', immediateRender: false }, CUT4 + 1.34);
+    tl.fromTo('#schedule-fill', { scaleX: 0 }, { scaleX: 1, duration: .78, ease: 'power2.inOut', immediateRender: false }, CUT4 + 1.70);
+    tl.fromTo('#reminder-card', { autoAlpha: 0, y: 20 }, { autoAlpha: 1, y: 0, duration: .36, ease: 'power3.out', immediateRender: false }, CUT4 + 2.58);
+    tl.fromTo('#overdue-card', { autoAlpha: 0, y: 20 }, { autoAlpha: 1, y: 0, duration: .36, ease: 'power3.out', immediateRender: false }, CUT4 + 3.00);
+    tl.fromTo('#downstream-unlocked', { autoAlpha: 0, y: 12 }, { autoAlpha: 1, y: 0, duration: .32, ease: 'power3.out', immediateRender: false }, CUT4 + 4.16);
+    tl.to('#downstream-status', { autoAlpha: 0, duration: .18, ease: 'none' }, CUT4 + 4.16);
+
+    // Outro: the chain resolves, then exits with the master seam.
+    tl.fromTo('#outro-kicker', { autoAlpha: 0, y: -18 }, { autoAlpha: 1, y: 0, duration: .40, ease: 'power3.out', immediateRender: false }, CUT5 + .34);
+    tl.fromTo('#outro-head', { autoAlpha: 0, y: 54, scale: .96 }, { autoAlpha: 1, y: 0, scale: 1, duration: .66, ease: 'expo.out', immediateRender: false }, CUT5 + .56);
+    tl.fromTo('#outro-rule', { autoAlpha: 0, scaleX: 0 }, { autoAlpha: 1, scaleX: 1, duration: .56, ease: 'power3.out', immediateRender: false }, CUT5 + 1.28);
+    tl.fromTo('#outro-note', { autoAlpha: 0, x: 24 }, { autoAlpha: 1, x: 0, duration: .38, ease: 'power2.out', immediateRender: false }, CUT5 + 1.55);
+    tl.fromTo('#outro-meta', { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: .34, ease: 'power2.out', immediateRender: false }, CUT5 + 1.75);
+    tl.to(['#outro-kicker', '#outro-head', '#outro-rule', '#outro-note', '#outro-meta'], { autoAlpha: 0, duration: .38, ease: 'power2.in' }, 45.48);
+
+    // Caption rail — phrase timestamps are derived from the local Chinese voice track.
+    (function () {
+      const LINES = [
+        { id: 'l1', end: 4.47, w: [['本周，', 0.00], ['项目系统', 0.68], ['打通钉钉', 1.48], ['任务交付闭环。', 2.42]] },
+        { id: 'l2', end: 13.78, w: [['权限统一到项目级。', 4.47], ['L3', 5.88], ['只执行自己的任务；', 6.72], ['直属主管能查看，', 8.34], ['但不能编辑或审批。', 9.68]] },
+        { id: 'l3', end: 22.24, w: [['交付分为阶段和最终。', 13.78], ['L3', 15.28], ['可在钉钉多次提交', 16.10], ['进度和附件，', 17.86], ['结果实时同步。', 19.12]] },
+        { id: 'l4', end: 31.05, w: [['最终交付由', 22.24], ['L2', 23.16], ['和管理员审批。', 23.84], ['全部通过后，', 25.22], ['任务才完成，', 26.30], ['并启动下游任务。', 27.34]] },
+        { id: 'l5', end: 38.61, w: [['任务完成后系统重算排期，', 31.05], ['开始前三天预警；', 33.10], ['超期完成还要填写原因。', 34.86]] },
+        { id: 'l6', end: 44.93, w: [['计划、执行、交付和通知，', 38.61], ['形成一条可追踪的闭环。', 40.76]] }
+      ];
+      const host = document.getElementById('cap-line');
+      LINES.forEach((line, li) => {
+        const ph = document.createElement('div');
+        ph.className = 'cap-phrase'; ph.id = 'cap-p' + li;
+        line.w.forEach(([txt], wi) => {
+          const s = document.createElement('span');
+          s.className = 'cap-w'; s.id = 'cap-p' + li + '-w' + wi; s.textContent = txt;
+          ph.appendChild(s);
+        });
+        host.appendChild(ph);
+      });
+      gsap.set('.cap-phrase', { autoAlpha: 0 });
+      gsap.set('.cap-w', { autoAlpha: 0, display: 'none' });
+      LINES.forEach((line, li) => {
+          tl.set('#cap-p' + li, { autoAlpha: 1 }, line.w[0][1]);
+          tl.set('#cap-p' + li, { autoAlpha: 0 }, line.end);
+          line.w.forEach(([txt, at], wi) => {
+          tl.set('#cap-p' + li + '-w' + wi, { display: 'inline-block' }, at);
+          tl.to('#cap-p' + li + '-w' + wi, { autoAlpha: 1, duration: 0.12, ease: 'power1.out' }, at);
+        });
+      });
+    })();
+
+    window.__timelines = window.__timelines || {};
+    window.__timelines["main"] = tl;
+
+      // <seams:auto> — generated by seam-stamp.mjs from ledger.json; do not hand-edit.
+      // Regenerate: node <motion-doctrine>/scripts/seam-stamp.mjs --ledger ledger.json --write index.html
+      gsap.set("#scene-title", { autoAlpha: 1, xPercent: 0, yPercent: 0, scale: 1, filter: "blur(0px)", transformOrigin: "50% 50%" });
+      gsap.set(["#scene-t1","#scene-t2","#scene-t3","#scene-t4","#scene-outro"], { autoAlpha: 0, xPercent: 0, yPercent: 0, scale: 1, filter: "blur(0px)", transformOrigin: "50% 50%" });
+      
+      // SEAM — title-to-permission : cut-the-curve LEFT (cut @2.2)
+      tl.to("#scene-title", { xPercent: -12, autoAlpha: 0, duration: 0.34, ease: "power3.in" }, 1.86);
+      tl.set("#scene-title", { autoAlpha: 0 }, 2.2);
+      tl.fromTo("#scene-t1", { xPercent: 8, autoAlpha: 0.35 }, { xPercent: 0, autoAlpha: 1, duration: 0.42, ease: "power4.out", immediateRender: false }, 2.2);
+      
+      // SEAM — permission-to-delivery : cut-the-curve LEFT (cut @13.78)
+      tl.to("#scene-t1", { xPercent: -12, autoAlpha: 0, duration: 0.34, ease: "power3.in" }, 13.44);
+      tl.set("#scene-t1", { autoAlpha: 0 }, 13.78);
+      tl.fromTo("#scene-t2", { xPercent: 8, autoAlpha: 0.35 }, { xPercent: 0, autoAlpha: 1, duration: 0.42, ease: "power4.out", immediateRender: false }, 13.78);
+      
+      // SEAM — delivery-to-approval : cut-the-curve LEFT (cut @22.24)
+      tl.to("#scene-t2", { xPercent: -12, autoAlpha: 0, duration: 0.34, ease: "power3.in" }, 21.9);
+      tl.set("#scene-t2", { autoAlpha: 0 }, 22.24);
+      tl.fromTo("#scene-t3", { xPercent: 8, autoAlpha: 0.35 }, { xPercent: 0, autoAlpha: 1, duration: 0.42, ease: "power4.out", immediateRender: false }, 22.24);
+      
+      // SEAM — approval-to-schedule : cut-the-curve LEFT (cut @31.05)
+      tl.to("#scene-t3", { xPercent: -12, autoAlpha: 0, duration: 0.34, ease: "power3.in" }, 30.71);
+      tl.set("#scene-t3", { autoAlpha: 0 }, 31.05);
+      tl.fromTo("#scene-t4", { xPercent: 8, autoAlpha: 0.35 }, { xPercent: 0, autoAlpha: 1, duration: 0.42, ease: "power4.out", immediateRender: false }, 31.05);
+      
+      // SEAM — schedule-to-outro : cut-the-curve LEFT (cut @38.61)
+      tl.to("#scene-t4", { xPercent: -12, autoAlpha: 0, duration: 0.34, ease: "power3.in" }, 38.27);
+      tl.set("#scene-t4", { autoAlpha: 0 }, 38.61);
+      tl.fromTo("#scene-outro", { xPercent: 8, autoAlpha: 0.35 }, { xPercent: 0, autoAlpha: 1, duration: 0.42, ease: "power4.out", immediateRender: false }, 38.61);
+      
+      // </seams:auto>
+    // <seams:auto> is stamped from ledger.json after timeline registration.
+  </script>
+</body>
+</html>

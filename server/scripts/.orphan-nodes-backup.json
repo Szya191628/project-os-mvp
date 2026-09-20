@@ -1,0 +1,62 @@
+{
+  "nodes": [
+    {
+      "id": "e0cb9c0b-97ea-4170-9904-2d4099e208ee",
+      "workflowVersionId": "0df35daa-1a8c-4cdd-a52e-2081bd351688",
+      "taskId": null,
+      "nodeType": "END",
+      "wbs": "END",
+      "parentTaskId": null,
+      "name": "项目结束",
+      "ownerMemberId": null,
+      "durationDays": 0,
+      "effortHours": 0,
+      "description": null,
+      "closureCriteria": null,
+      "positionX": 155,
+      "positionY": 39,
+      "createdAt": "2026-09-07T01:37:08.260Z",
+      "updatedAt": "2026-09-07T06:21:30.945Z"
+    },
+    {
+      "id": "f1bf9f6d-02b8-47ad-888a-14337e03f232",
+      "workflowVersionId": "0df35daa-1a8c-4cdd-a52e-2081bd351688",
+      "taskId": null,
+      "nodeType": "START",
+      "wbs": "START",
+      "parentTaskId": null,
+      "name": "项目开始",
+      "ownerMemberId": null,
+      "durationDays": 0,
+      "effortHours": 0,
+      "description": null,
+      "closureCriteria": null,
+      "positionX": 129,
+      "positionY": 16,
+      "createdAt": "2026-09-07T01:37:08.263Z",
+      "updatedAt": "2026-09-07T06:21:30.949Z"
+    }
+  ],
+  "schedules": [
+    {
+      "workflowVersionId": "0df35daa-1a8c-4cdd-a52e-2081bd351688",
+      "nodeId": "e0cb9c0b-97ea-4170-9904-2d4099e208ee",
+      "plannedStart": "2026-08-31T00:00:00.000Z",
+      "plannedEnd": "2026-08-31T00:00:00.000Z",
+      "startOffset": 0,
+      "endOffset": 0,
+      "calendarSpan": 0,
+      "computedAt": "2026-09-07T06:21:30.977Z"
+    },
+    {
+      "workflowVersionId": "0df35daa-1a8c-4cdd-a52e-2081bd351688",
+      "nodeId": "f1bf9f6d-02b8-47ad-888a-14337e03f232",
+      "plannedStart": "2026-08-31T00:00:00.000Z",
+      "plannedEnd": "2026-08-31T00:00:00.000Z",
+      "startOffset": 0,
+      "endOffset": 0,
+      "calendarSpan": 0,
+      "computedAt": "2026-09-07T06:21:30.977Z"
+    }
+  ]
+}

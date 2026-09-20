@@ -1,0 +1,31 @@
+node_modules
+dist
+.vite
+*.local
+.env
+.env.*
+!.env.example
+server/.env
+server/uploads/
+.qa
+qa-*.png
+
+# Local runtime output. Historical root logs remain in place for now.
+*.log
+.runtime/
+tmp/run/*
+!tmp/run/.gitkeep
+
+# Generated output
+graphify-out/
+output/
+
+# Large media files (videos, audio, rendered assets)
+projects/active/*/out/
+projects/active/*/snapshots/
+projects/active/*/voice-lines/
+projects/active/*/voiceover*.wav
+projects/active/*/voiceover*.mp3
+projects/active/*/bgm.mp3
+projects/active/*/assets/*.mp4
+tmp/pdfs/

@@ -1,0 +1,1 @@
+ALTER TABLE "ClaimTask" ADD COLUMN "departmentIds" UUID[] NOT NULL DEFAULT ARRAY[]::UUID[];
